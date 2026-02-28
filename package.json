@@ -1,0 +1,50 @@
+{
+  "name": "vine-boom-hq-longer",
+  "displayName": "Vine Boom HQ Longer",
+  "description": "Plays customizable meme sound effects on syntax or compilation errors.",
+  "publisher": "Vamsi00",
+  "icon": "icon.ico",
+  "version": "1.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Vamsiindugu/vine-boom-extension.git"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "errorSounds.changeSound",
+        "title": "Error Sounds: Change Sound"
+      }
+    ],
+    "configuration": {
+      "title": "Error Sounds",
+      "properties": {
+        "errorSounds.selectedSound": {
+          "type": "string",
+          "default": "Vine Boom",
+          "description": "The selected meme sound to play on errors."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^18.x",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.x"
+  }
+}
