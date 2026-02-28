@@ -4,7 +4,7 @@
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-orange)
 
-> **Vine Boom HQ Longer** is a high-performance, meme-powered VS Code extension designed to turn your syntax errors into **instant auditory feedback**. Experience the 🧠 **Vine Boom** (and 10 other legendary sounds) the moment a red squiggle appears! ✅
+> **Vine Boom HQ Longer** is a high-performance, meme-powered VS Code extension designed to turn your syntax errors into **instant auditory feedback**. Experience the 🧠 **Vine Boom** (and 22 other legendary sounds) the moment a red squiggle appears! ✅
 
 ---
 
@@ -34,6 +34,7 @@ Coding is serious, but debugging doesn't have to be. **Vine Boom HQ Longer** mon
 
 ## ✨ Key Features
 *   ✅ **Real-Time Monitoring**: Detects new syntax errors across all open files instantly.
+*   ✅ **23 Iconic Meme Sounds**: From the classic Vine Boom to the legendary "Tuco: Get Out!".
 *   ✅ **Live Sound Preview**: Scroll through the sound list in the Command Palette and hear them play in real-time.
 *   ✅ **Audio Cancellation**: Fast-scrolling or rapid typing won't overlap sounds—it cuts off the previous sound perfectly.
 *   ✅ **Smart Debouncing**: A 2000ms cooldown prevents audio spam if you're making many changes at once.
@@ -42,18 +43,16 @@ Coding is serious, but debugging doesn't have to be. **Vine Boom HQ Longer** mon
 ---
 
 ## 🔊 Sound Library
-Choose from 11 legendary internet meme sounds:
+Choose from 23 legendary internet meme sounds including:
 *   **Vine Boom** (The Classic 💥)
+*   **Tuco: Get Out!** (New! 🚪)
+*   **Hacker hai bhai** 💻
+*   **Tehelka omlette** 🍳
 *   **Galaxy Meme** 🌌
 *   **Brother Eww** 🤢
 *   **Spiderman Meme Song** 🕷️
-*   **Eh eh ehhhh** 🤷
-*   **Error Soundss** ⚠️
-*   **Bone Crack** 🦴
-*   **Ack** 🗣️
-*   **Aayein Meme** 🤨
-*   **Hub Intro Sound** ⬛🟧
-*   **Dexter Meme** 🔬
+*   **Laughing Dog** 🐕
+*   ...and many more!
 
 ---
 
@@ -93,7 +92,7 @@ npm run compile
 ## 📋 System Requirements
 The extension uses native system players for zero-latency audio:
 
-*   **Windows**: Uses PowerShell + `WMPlayer.OCX` (Included with Windows).
+*   **Windows**: Uses PowerShell + `.NET MediaPlayer` (Included with Windows).
 *   **macOS**: Uses `afplay` (Pre-installed on macOS).
 *   **Linux**: Requires `paplay`, `mpg123`, or `ffplay` to be available in your system path.
 

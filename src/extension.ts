@@ -14,7 +14,20 @@ const SOUNDS = [
     { label: "Aayein meme", file: "aayein-meme.mp3" },
     { label: "Hub intro", file: "hub-intro-sound.mp3" },
     { label: "Spiderman meme song", file: "spiderman-meme-song.mp3" },
-    { label: "Dexter meme", file: "dexter-meme.mp3" }
+    { label: "Dexter meme", file: "dexter-meme.mp3" },
+    { label: "Faaah", file: "faaah.mp3" },
+    { label: "Chicken on tree", file: "chicken-on-tree.mp3" },
+    { label: "Tuco: Get Out!", file: "tuco-get-out.mp3" },
+    { label: "Ki kore", file: "ki-kore.mp3" },
+    { label: "Tehelka omlette", file: "tehelka-omlette.mp3" },
+    { label: "Gey echo", file: "gey-echo.mp3" },
+    { label: "Aji mangal", file: "aji-mangal.mp3" },
+    { label: "Oh my god bro", file: "oh-my-god-bro.mp3" },
+    { label: "Meme final", file: "meme-final.mp3" },
+    { label: "Hacker hai bhai", file: "hacker-hai-bhai.mp3" },
+    { label: "Ooo hahah", file: "ooo-hahah.mp3" },
+    { label: "Technologia", file: "technologia.mp3" },
+    { label: "Laughing dog", file: "laughing-dog.mp3" }
 ];
 
 class AudioManager {
