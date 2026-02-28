@@ -1,45 +1,41 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as https from 'https';
 import { exec, ChildProcess } from 'child_process';
 import * as os from 'os';
 
 const SOUNDS = [
-    { label: "Vine Boom", url: "https://www.myinstants.com/media/sounds/vine-boom.mp3" },
-    { label: "Eh eh ehhhh", url: "https://www.myinstants.com/media/sounds/eh-eh-ehhhh.mp3" },
-    { label: "Galaxy meme", url: "https://www.myinstants.com/media/sounds/galaxy-meme.mp3" },
-    { label: "Error soundss", url: "https://www.myinstants.com/media/sounds/error-soundss.mp3" },
-    { label: "Bone crack", url: "https://www.myinstants.com/media/sounds/bone-crack.mp3" },
-    { label: "Ack", url: "https://www.myinstants.com/media/sounds/ack.mp3" },
-    { label: "Brother eww", url: "https://www.myinstants.com/media/sounds/brother-ewwwwwww.mp3" },
-    { label: "Aayein meme", url: "https://www.myinstants.com/media/sounds/aayein-meme.mp3" },
-    { label: "Hub intro", url: "https://www.myinstants.com/media/sounds/hub-intro-sound.mp3" },
-    { label: "Spiderman meme song", url: "https://www.myinstants.com/media/sounds/spiderman-meme-song.mp3" },
-    { label: "Dexter meme", url: "https://www.myinstants.com/media/sounds/dexter-meme.mp3" }
+    { label: "Vine Boom", file: "vine-boom.mp3" },
+    { label: "Eh eh ehhhh", file: "eh-eh-ehhhh.mp3" },
+    { label: "Galaxy meme", file: "galaxy-meme.mp3" },
+    { label: "Bone crack", file: "bone-crack.mp3" },
+    { label: "Ack", file: "ack.mp3" },
+    { label: "Brother eww", file: "brother-ewwwwwww.mp3" },
+    { label: "Aayein meme", file: "aayein-meme.mp3" },
+    { label: "Hub intro", file: "hub-intro-sound.mp3" },
+    { label: "Spiderman meme song", file: "spiderman-meme-song.mp3" },
+    { label: "Dexter meme", file: "dexter-meme.mp3" }
 ];
 
 class AudioManager {
-    private storagePath: string;
+    private soundsPath: string;
     private currentProcess: ChildProcess | null = null;
-    private downloadPromises = new Map<string, Promise<string>>();
 
-    constructor(storagePath: string) {
-        this.storagePath = storagePath;
-        if (!fs.existsSync(this.storagePath)) {
-            fs.mkdirSync(this.storagePath, { recursive: true });
-        }
+    constructor(extensionPath: string) {
+        this.soundsPath = path.join(extensionPath, 'sounds');
     }
 
-    public async play(soundLabel: string): Promise<void> {
-        this.stop(); // Kill previous overlapping sounds (Audio Cancellation)
+    public play(soundLabel: string): void {
+        this.stop();
         
         const sound = SOUNDS.find(s => s.label === soundLabel) || SOUNDS[0];
-        try {
-            const filePath = await this.ensureDownloaded(sound.label, sound.url);
+        const filePath = path.join(this.soundsPath, sound.file);
+        
+        if (fs.existsSync(filePath)) {
+            console.log(`[Error Sounds] Playing: ${sound.label}`);
             this.executeAudio(filePath);
-        } catch {
-            // Fail silently
+        } else {
+            console.error(`[Error Sounds] Sound file not found: ${filePath}`);
         }
     }
 
@@ -50,65 +46,15 @@ class AudioManager {
             } catch {}
             this.currentProcess = null;
         }
-        
-        // On Windows, killing powershell might orphan WMPlayer. 
-        // We ensure a robust kill if possible, but standard process.kill is best effort cross-platform.
-    }
-
-    private ensureDownloaded(label: string, url: string): Promise<string> {
-        const safeName = label.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.mp3';
-        const dest = path.join(this.storagePath, safeName);
-
-        if (fs.existsSync(dest)) {
-            return Promise.resolve(dest);
-        }
-
-        if (this.downloadPromises.has(label)) {
-            return this.downloadPromises.get(label)!;
-        }
-
-        const promise = new Promise<string>((resolve, reject) => {
-            const file = fs.createWriteStream(dest);
-            https.get(url, (response) => {
-                if ([301, 302, 307, 308].includes(response.statusCode || 0) && response.headers.location) {
-                    file.close();
-                    fs.unlink(dest, () => {});
-                    this.ensureDownloaded(label, response.headers.location).then(resolve).catch(reject);
-                    return;
-                }
-                
-                if (response.statusCode !== 200) {
-                    file.close();
-                    fs.unlink(dest, () => {});
-                    reject(new Error(`Failed to download: ${response.statusCode}`));
-                    return;
-                }
-
-                response.pipe(file);
-                file.on('finish', () => {
-                    file.close();
-                    resolve(dest);
-                });
-            }).on('error', (err) => {
-                fs.unlink(dest, () => {});
-                reject(err);
-            });
-        });
-
-        this.downloadPromises.set(label, promise);
-        
-        promise.catch(() => {
-            this.downloadPromises.delete(label);
-        });
-
-        return promise;
     }
 
     private executeAudio(filePath: string) {
         let command = '';
+        const escapedPath = filePath.replace(/'/g, "''");
+        
         switch (os.platform()) {
             case 'win32':
-                command = `powershell -NoProfile -NonInteractive -WindowStyle Hidden -Command "$player = New-Object -ComObject WMPlayer.OCX; $player.URL = '${filePath}'; $player.controls.play(); Start-Sleep -Milliseconds 3000"`;
+                command = `powershell -NoProfile -NonInteractive -WindowStyle Hidden -Command "Add-Type -AssemblyName presentationCore; $player = New-Object System.Windows.Media.MediaPlayer; $player.Open('${escapedPath}'); $player.Play(); Start-Sleep -Milliseconds 5000"`;
                 break;
             case 'darwin':
                 command = `afplay "${filePath}"`;
@@ -119,6 +65,7 @@ class AudioManager {
             default:
                 return;
         }
+        
         this.currentProcess = exec(command, () => {
             this.currentProcess = null;
         });
@@ -126,11 +73,10 @@ class AudioManager {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-    const audioManager = new AudioManager(context.globalStorageUri.fsPath);
+    const audioManager = new AudioManager(context.extensionUri.fsPath);
     let lastErrorCounts = new Map<string, number>();
     let debounceTimeout: NodeJS.Timeout | null = null;
 
-    // Command: Change Sound (QuickPick with Live Preview)
     const changeSoundCommand = vscode.commands.registerCommand('errorSounds.changeSound', async () => {
         const quickPick = vscode.window.createQuickPick();
         quickPick.items = SOUNDS.map(s => ({ label: s.label }));
@@ -160,7 +106,6 @@ export function activate(context: vscode.ExtensionContext) {
         quickPick.show();
     });
 
-    // Diagnostic Monitor
     const diagnosticListener = vscode.languages.onDidChangeDiagnostics(e => {
         const config = vscode.workspace.getConfiguration('errorSounds');
         const selectedSound = config.get<string>('selectedSound') || 'Vine Boom';
@@ -199,18 +144,6 @@ export function activate(context: vscode.ExtensionContext) {
             if (debounceTimeout) clearTimeout(debounceTimeout);
         }
     });
-
-    // Pre-cache chosen sound
-    const initialSound = vscode.workspace.getConfiguration('errorSounds').get<string>('selectedSound') || 'Vine Boom';
-    const soundData = SOUNDS.find(s => s.label === initialSound) || SOUNDS[0];
-    
-    // Lazy download happens here, but we discard play just to force caching
-    // A clean way is to ensureDownloaded manually, but since AudioManager methods are private mostly, 
-    // We could make ensureDownloaded public, or just add a preload method.
-    // For extreme minimalism, we do essentially nothing here since the first error will trigger it,
-    // but a preload prevents the first error lag.
-    
-    // We can just rely on lazy loading upon first error.
 }
 
 export function deactivate() {}

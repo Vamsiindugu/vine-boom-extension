@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.activate = activate;
+exports.activateLegacy = activateLegacy;
 exports.deactivate = deactivate;
 const vscode = require("vscode");
 const fs = require("fs");
@@ -32,14 +33,17 @@ class AudioManager {
         }
     }
     async play(soundLabel) {
-        this.stop(); // Kill previous overlapping sounds (Audio Cancellation)
+        this.stop();
         const sound = SOUNDS.find(s => s.label === soundLabel) || SOUNDS[0];
+        console.log(`[Error Sounds] Attempting to play: ${sound.label}`);
         try {
             const filePath = await this.ensureDownloaded(sound.label, sound.url);
+            console.log(`[Error Sounds] Audio file ready: ${filePath}`);
             this.executeAudio(filePath);
         }
-        catch {
-            // Fail silently
+        catch (err) {
+            console.error(`[Error Sounds] Playback failed: ${err}`);
+            vscode.window.showErrorMessage(`Sound playback failed: ${err}`);
         }
     }
     stop() {
@@ -50,8 +54,6 @@ class AudioManager {
             catch { }
             this.currentProcess = null;
         }
-        // On Windows, killing powershell might orphan WMPlayer. 
-        // We ensure a robust kill if possible, but standard process.kill is best effort cross-platform.
     }
     ensureDownloaded(label, url) {
         const safeName = label.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.mp3';
@@ -62,6 +64,7 @@ class AudioManager {
         if (this.downloadPromises.has(label)) {
             return this.downloadPromises.get(label);
         }
+        const statusMessage = vscode.window.setStatusBarMessage(`$(sync~spin) Downloading sound: ${label}...`);
         const promise = new Promise((resolve, reject) => {
             const file = fs.createWriteStream(dest);
             https.get(url, (response) => {
@@ -74,16 +77,18 @@ class AudioManager {
                 if (response.statusCode !== 200) {
                     file.close();
                     fs.unlink(dest, () => { });
-                    reject(new Error(`Failed to download: ${response.statusCode}`));
+                    reject(new Error(`HTTP ${response.statusCode}`));
                     return;
                 }
                 response.pipe(file);
                 file.on('finish', () => {
                     file.close();
+                    statusMessage.dispose();
                     resolve(dest);
                 });
             }).on('error', (err) => {
                 fs.unlink(dest, () => { });
+                statusMessage.dispose();
                 reject(err);
             });
         });
@@ -95,9 +100,10 @@ class AudioManager {
     }
     executeAudio(filePath) {
         let command = '';
+        const escapedPath = filePath.replace(/'/g, "''");
         switch (os.platform()) {
             case 'win32':
-                command = `powershell -NoProfile -NonInteractive -WindowStyle Hidden -Command "$player = New-Object -ComObject WMPlayer.OCX; $player.URL = '${filePath}'; $player.controls.play(); Start-Sleep -Milliseconds 3000"`;
+                command = `powershell -NoProfile -NonInteractive -WindowStyle Hidden -Command "Add-Type -AssemblyName presentationCore; $player = New-Object System.Windows.Media.MediaPlayer; $player.Open('${escapedPath}'); $player.Play(); Start-Sleep -Milliseconds 5000"`;
                 break;
             case 'darwin':
                 command = `afplay "${filePath}"`;
@@ -108,7 +114,10 @@ class AudioManager {
             default:
                 return;
         }
-        this.currentProcess = (0, child_process_1.exec)(command, () => {
+        this.currentProcess = (0, child_process_1.exec)(command, (error) => {
+            if (error) {
+                console.error(`[Error Sounds] Exec error: ${error.message}`);
+            }
             this.currentProcess = null;
         });
     }
@@ -117,7 +126,6 @@ function activate(context) {
     const audioManager = new AudioManager(context.globalStorageUri.fsPath);
     let lastErrorCounts = new Map();
     let debounceTimeout = null;
-    // Command: Change Sound (QuickPick with Live Preview)
     const changeSoundCommand = vscode.commands.registerCommand('errorSounds.changeSound', async () => {
         const quickPick = vscode.window.createQuickPick();
         quickPick.items = SOUNDS.map(s => ({ label: s.label }));
@@ -142,7 +150,6 @@ function activate(context) {
         });
         quickPick.show();
     });
-    // Diagnostic Monitor
     const diagnosticListener = vscode.languages.onDidChangeDiagnostics(e => {
         const config = vscode.workspace.getConfiguration('errorSounds');
         const selectedSound = config.get('selectedSound') || 'Vine Boom';
@@ -174,15 +181,9 @@ function activate(context) {
                 clearTimeout(debounceTimeout);
         }
     });
-    // Pre-cache chosen sound
-    const initialSound = vscode.workspace.getConfiguration('errorSounds').get('selectedSound') || 'Vine Boom';
-    const soundData = SOUNDS.find(s => s.label === initialSound) || SOUNDS[0];
-    // Lazy download happens here, but we discard play just to force caching
-    // A clean way is to ensureDownloaded manually, but since AudioManager methods are private mostly, 
-    // We could make ensureDownloaded public, or just add a preload method.
-    // For extreme minimalism, we do essentially nothing here since the first error will trigger it,
-    // but a preload prevents the first error lag.
-    // We can just rely on lazy loading upon first error.
+}
+function activateLegacy(context) {
+    // keeping signature for potential exports
 }
 function deactivate() { }
 //# sourceMappingURL=extension.js.map

@@ -2,8 +2,13 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "type": "npm",
-      "script": "compile",
+      "label": "npm: compile",
+      "type": "shell",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npm run compile"
+      ],
       "group": {
         "kind": "build",
         "isDefault": true
@@ -11,18 +16,10 @@
       "problemMatcher": [
         "$tsc"
       ],
-      "label": "npm: compile",
-      "detail": "tsc -p ./"
-    },
-    {
-      "type": "npm",
-      "script": "watch",
-      "group": "build",
-      "problemMatcher": [
-        "$tsc-watch"
-      ],
-      "label": "npm: watch",
-      "detail": "tsc -watch -p ./"
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
     }
   ]
 }
