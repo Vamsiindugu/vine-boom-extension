@@ -2,7 +2,7 @@
 
 Plays customizable meme sound effects on syntax or compilation errors in Visual Studio Code.
 
-![Icon](icon.png)
+![Icon](./icon.ico)
 
 ## Features
 
