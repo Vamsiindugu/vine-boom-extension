@@ -1,49 +1,53 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.activate = activate;
-exports.activateLegacy = activateLegacy;
 exports.deactivate = deactivate;
 const vscode = require("vscode");
 const fs = require("fs");
 const path = require("path");
-const https = require("https");
 const child_process_1 = require("child_process");
 const os = require("os");
 const SOUNDS = [
-    { label: "Vine Boom", url: "https://www.myinstants.com/media/sounds/vine-boom.mp3" },
-    { label: "Eh eh ehhhh", url: "https://www.myinstants.com/media/sounds/eh-eh-ehhhh.mp3" },
-    { label: "Galaxy meme", url: "https://www.myinstants.com/media/sounds/galaxy-meme.mp3" },
-    { label: "Error soundss", url: "https://www.myinstants.com/media/sounds/error-soundss.mp3" },
-    { label: "Bone crack", url: "https://www.myinstants.com/media/sounds/bone-crack.mp3" },
-    { label: "Ack", url: "https://www.myinstants.com/media/sounds/ack.mp3" },
-    { label: "Brother eww", url: "https://www.myinstants.com/media/sounds/brother-ewwwwwww.mp3" },
-    { label: "Aayein meme", url: "https://www.myinstants.com/media/sounds/aayein-meme.mp3" },
-    { label: "Hub intro", url: "https://www.myinstants.com/media/sounds/hub-intro-sound.mp3" },
-    { label: "Spiderman meme song", url: "https://www.myinstants.com/media/sounds/spiderman-meme-song.mp3" },
-    { label: "Dexter meme", url: "https://www.myinstants.com/media/sounds/dexter-meme.mp3" }
+    { label: "Vine Boom", file: "vine-boom.mp3" },
+    { label: "Eh eh ehhhh", file: "eh-eh-ehhhh.mp3" },
+    { label: "Galaxy meme", file: "galaxy-meme.mp3" },
+    { label: "Bone crack", file: "bone-crack.mp3" },
+    { label: "Ack", file: "ack.mp3" },
+    { label: "Brother eww", file: "brother-ewwwwwww.mp3" },
+    { label: "Aayein meme", file: "aayein-meme.mp3" },
+    { label: "Hub intro", file: "hub-intro-sound.mp3" },
+    { label: "Spiderman meme song", file: "spiderman-meme-song.mp3" },
+    { label: "Dexter meme", file: "dexter-meme.mp3" },
+    { label: "Faaah", file: "faaah.mp3" },
+    { label: "Chicken on tree", file: "chicken-on-tree.mp3" },
+    { label: "Tuco: Get Out!", file: "tuco-get-out.mp3" },
+    { label: "Ki kore", file: "ki-kore.mp3" },
+    { label: "Tehelka omlette", file: "tehelka-omlette.mp3" },
+    { label: "Gey echo", file: "gey-echo.mp3" },
+    { label: "Aji mangal", file: "aji-mangal.mp3" },
+    { label: "Oh my god bro", file: "oh-my-god-bro.mp3" },
+    { label: "Meme final", file: "meme-final.mp3" },
+    { label: "Hacker hai bhai", file: "hacker-hai-bhai.mp3" },
+    { label: "Ooo hahah", file: "ooo-hahah.mp3" },
+    { label: "Technologia", file: "technologia.mp3" },
+    { label: "Laughing dog", file: "laughing-dog.mp3" }
 ];
 class AudioManager {
-    storagePath;
+    soundsPath;
     currentProcess = null;
-    downloadPromises = new Map();
-    constructor(storagePath) {
-        this.storagePath = storagePath;
-        if (!fs.existsSync(this.storagePath)) {
-            fs.mkdirSync(this.storagePath, { recursive: true });
-        }
+    constructor(extensionPath) {
+        this.soundsPath = path.join(extensionPath, 'sounds');
     }
-    async play(soundLabel) {
+    play(soundLabel) {
         this.stop();
         const sound = SOUNDS.find(s => s.label === soundLabel) || SOUNDS[0];
-        console.log(`[Error Sounds] Attempting to play: ${sound.label}`);
-        try {
-            const filePath = await this.ensureDownloaded(sound.label, sound.url);
-            console.log(`[Error Sounds] Audio file ready: ${filePath}`);
+        const filePath = path.join(this.soundsPath, sound.file);
+        if (fs.existsSync(filePath)) {
+            console.log(`[Error Sounds] Playing: ${sound.label}`);
             this.executeAudio(filePath);
         }
-        catch (err) {
-            console.error(`[Error Sounds] Playback failed: ${err}`);
-            vscode.window.showErrorMessage(`Sound playback failed: ${err}`);
+        else {
+            console.error(`[Error Sounds] Sound file not found: ${filePath}`);
         }
     }
     stop() {
@@ -54,49 +58,6 @@ class AudioManager {
             catch { }
             this.currentProcess = null;
         }
-    }
-    ensureDownloaded(label, url) {
-        const safeName = label.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.mp3';
-        const dest = path.join(this.storagePath, safeName);
-        if (fs.existsSync(dest)) {
-            return Promise.resolve(dest);
-        }
-        if (this.downloadPromises.has(label)) {
-            return this.downloadPromises.get(label);
-        }
-        const statusMessage = vscode.window.setStatusBarMessage(`$(sync~spin) Downloading sound: ${label}...`);
-        const promise = new Promise((resolve, reject) => {
-            const file = fs.createWriteStream(dest);
-            https.get(url, (response) => {
-                if ([301, 302, 307, 308].includes(response.statusCode || 0) && response.headers.location) {
-                    file.close();
-                    fs.unlink(dest, () => { });
-                    this.ensureDownloaded(label, response.headers.location).then(resolve).catch(reject);
-                    return;
-                }
-                if (response.statusCode !== 200) {
-                    file.close();
-                    fs.unlink(dest, () => { });
-                    reject(new Error(`HTTP ${response.statusCode}`));
-                    return;
-                }
-                response.pipe(file);
-                file.on('finish', () => {
-                    file.close();
-                    statusMessage.dispose();
-                    resolve(dest);
-                });
-            }).on('error', (err) => {
-                fs.unlink(dest, () => { });
-                statusMessage.dispose();
-                reject(err);
-            });
-        });
-        this.downloadPromises.set(label, promise);
-        promise.catch(() => {
-            this.downloadPromises.delete(label);
-        });
-        return promise;
     }
     executeAudio(filePath) {
         let command = '';
@@ -114,16 +75,13 @@ class AudioManager {
             default:
                 return;
         }
-        this.currentProcess = (0, child_process_1.exec)(command, (error) => {
-            if (error) {
-                console.error(`[Error Sounds] Exec error: ${error.message}`);
-            }
+        this.currentProcess = (0, child_process_1.exec)(command, () => {
             this.currentProcess = null;
         });
     }
 }
 function activate(context) {
-    const audioManager = new AudioManager(context.globalStorageUri.fsPath);
+    const audioManager = new AudioManager(context.extensionUri.fsPath);
     let lastErrorCounts = new Map();
     let debounceTimeout = null;
     const changeSoundCommand = vscode.commands.registerCommand('errorSounds.changeSound', async () => {
@@ -181,9 +139,6 @@ function activate(context) {
                 clearTimeout(debounceTimeout);
         }
     });
-}
-function activateLegacy(context) {
-    // keeping signature for potential exports
 }
 function deactivate() { }
 //# sourceMappingURL=extension.js.map
