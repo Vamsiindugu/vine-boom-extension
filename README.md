@@ -125,4 +125,4 @@ Distributed under the **MIT License**. See `LICENSE` for more information.
 
 ---
 
-> *Built with ❤️ by [Vamsi00](https://github.com/Vamsiindugu) for the developer community.*
+> *Built with ❤️ by [Vamsi](https://github.com/Vamsiindugu) for the developer community.*
